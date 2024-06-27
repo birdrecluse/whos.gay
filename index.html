@@ -33,7 +33,12 @@
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
 
-      return `${year}:${month}:${day}:${hours}:${minutes}`;
+      return `${year}-${month}-${day}, ${hours}:${minutes}`;
+    }
+
+    async function displayCurrentHeight(){
+      const currentHeight = await getBlockHeight();
+      document.getElementById('currentHeight').textContent = currentHeight;
     }
 
     async function main() {
@@ -52,8 +57,7 @@
       document.getElementById('countdown').textContent = `Time remaining: ${Math.floor(remainingTime / (1000 * 60 * 60))}h ${Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60))}m`;
       document.getElementById('futureDate').textContent = `Estimated date and time: ${futureDate}`;
     }
-
-    main(); // Call main on page load
+    displayCurrentHeight();
   </script>
 
   <p>Current Bitcoin Block Height: <span id="currentHeight"></span></p>
