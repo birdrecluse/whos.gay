@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Block Time Calculator</title>
+</head>
+<body>
+    <h1>Bitcoin Block Time Calculator</h1>
+    <p>This program estimates the time remaining until a specific Bitcoin block height in the future, based on an average block time of 10 minutes.</p>
+    <form onsubmit="return calculateCountdown()">
+        <label for="currentBlockHeight">Current Block Height:</label>
+        <input type="number" id="currentBlockHeight" required>
+        <br>
+        <label for="targetBlockHeight">Target Block Height:</label>
+        <input type="number" id="targetBlockHeight" required>
+        <br>
+        <button type="submit">Calculate</button>
+    </form>
+    <div id="countdownResult"></div>
+    <script>
+        function calculateCountdown() {
+            const currentBlockHeight = parseInt(document.getElementById("currentBlockHeight").value);
+            const targetBlockHeight = parseInt(document.getElementById("targetBlockHeight").value);
+            const averageBlockTime = 10 * 60; // 10 minutes in seconds
+
+            // Calculate the number of blocks remaining
+            const blocksRemaining = targetBlockHeight - currentBlockHeight;
+
+            // Calculate the estimated time remaining in seconds
+            const estimatedTimeRemaining = blocksRemaining * averageBlockTime;
+
+            // Convert seconds to countdown format (days, hours, minutes, seconds)
+            const days = Math.floor(estimatedTimeRemaining / 86400);
+            const hours = Math.floor((estimatedTimeRemaining % 86400) / 3600);
+            const minutes = Math.floor((estimatedTimeRemaining % 3600) / 60);
+            const seconds = Math.floor(estimatedTimeRemaining % 60);
+
+            // Format the countdown string
+            const countdownString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+            // Get the current date and time
+            const currentDate = new Date();
+
+            // Estimate the future date and time based on average block time
+            const estimatedFutureTime = new Date(currentDate.getTime() + estimatedTimeRemaining * 1000);
+
+            // Format the estimated future time (yyyy:mm:dd:hh:mm)
+            const futureTimeFormatted = estimatedFutureTime.toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'});
+
+            // Display the countdown and estimated future time
+            const countdownResultDiv = document.getElementById("countdownResult");
+            countdownResultDiv.innerHTML = `Countdown to block ${targetBlockHeight}: ${countdownString}<br> Estimated time to reach block ${targetBlockHeight}: ${futureTimeFormatted}`;
+
+            return false;
+        }
+    </script>
+</body>
+</html>
