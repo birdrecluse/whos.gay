@@ -39,6 +39,13 @@
         .error {
             color: red;
         }
+        .swap-record {
+            margin-bottom: 10px;
+        }
+        .tx-link {
+            color: blue;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -105,7 +112,7 @@
                 const swapHistory = await getSwapHistory(startTime, endTime, tick1, tick2);
                 if (swapHistory) {
                     outputDiv.innerHTML = '';
-                    let totalVolumeTick2 = 0; // Initialize to 0
+                    let totalVolumeTick2 = 0;
 
                     swapHistory.forEach(item => {
                         if (item.tick2.toUpperCase() === tick2) {
@@ -129,7 +136,8 @@
                     } else {
                         swapHistory.sort((a, b) => a.time_sec - b.time_sec);
                         swapHistory.forEach(item => {
-                            outputDiv.innerHTML += JSON.stringify(item, null, 2) + '\n\n';
+                            const formattedRecord = formatSwapRecord(item, tick1, tick2);
+                            outputDiv.innerHTML += `<div class="swap-record">${formattedRecord}</div>`;
                         });
                     }
 
@@ -141,6 +149,27 @@
             }
         });
 
+        function formatSwapRecord(item, tick1, tick2) {
+            // Corrected logic:
+            const isBuy = tick1.toUpperCase() === "BTC"; // If tick1 is BTC, it's a buy
+            const action = isBuy ? "Buy" : "Sell";
+            const minusTick = isBuy ? tick1 : tick2; // What you give
+            const plusTick = isBuy ? tick2 : tick1;  // What you receive
+            const minusAmount = isBuy ? item.tick1_amount : item.tick2_amount; // Amount you give
+            const plusAmount = isBuy ? item.tick2_amount : item.tick1_amount; // Amount you receive
+            const humanReadableTime = new Date(item.time_sec * 1000).toLocaleString();
+            const addressLink = `<a class="tx-link" href="https://mempool.space/address/${item.address}" target="_blank">${item.address}</a>`;
+            const txid = item.txs && item.txs[0] && item.txs[0].tx_id;
+            const txidLink = txid ? `<a class="tx-link" href="https://mempool.space/tx/${txid}" target="_blank">${txid}</a>` : 'N/A';
+
+            const formattedRecord = `
+                ${action}, -${minusAmount} ${minusTick}, +${plusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
+            `;
+
+            return formattedRecord;
+        }
+
+        // getSwapHistory function remains the same ...
         async function getSwapHistory(start_time, end_time, tick1, tick2) {
             const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
             const headers = {
