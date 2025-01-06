@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DotSwap History 1.029</title>
+    <title>DotSwap History 1.038</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
         body {
             font-family: sans-serif;
         }
         .container {
-            width: 80%;
+            width: 90%;
             margin: 0 auto;
         }
         .input-group {
@@ -17,8 +18,8 @@
             display: block;
             margin-bottom: 5px;
         }
-        .input-group input {
-            width: 100%;
+        .input-group input, .input-group input[type="datetime-local"] {
+            width: 95%;
             padding: 5px;
             border: 1px solid #ccc;
         }
@@ -38,18 +39,22 @@
         .sell {
             color: red;
         }
+        .summary {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>DotSwap History 1.029</h1>
+        <h1>DotSwap History 1.038</h1>
         <div class="input-group">
             <label for="start-date">Start Date:</label>
-            <input type="date" id="start-date">
+            <input type="datetime-local" id="start-date">
         </div>
         <div class="input-group">
             <label for="end-date">End Date:</label>
-            <input type="date" id="end-date">
+            <input type="datetime-local" id="end-date">
         </div>
         <div class="input-group">
             <label for="tick1">Tick1:</label>
@@ -60,12 +65,14 @@
             <input type="text" id="tick2" value="DOG•GO•TO•THE•MOON">
         </div>
         <button id="fetch-button">Fetch History</button>
+        <div id="summary" class="summary"></div>
         <div id="results"></div>
     </div>
 
     <script>
         const fetchButton = document.getElementById('fetch-button');
         const resultsDiv = document.getElementById('results');
+        const summaryDiv = document.getElementById('summary');
 
         fetchButton.addEventListener('click', async () => {
             const startDate = document.getElementById('start-date').value;
@@ -74,12 +81,14 @@
             const tick2 = document.getElementById('tick2').value;
 
             const startTimestamp = startDate ? new Date(startDate).getTime() / 1000 : 0;
-            const endTimestamp = endDate ? new Date(endDate).getTime() / 1000 + 86400 : Math.floor(Date.now() / 1000); 
+            const endTimestamp = endDate ? new Date(endDate).getTime() / 1000 : Math.floor(Date.now() / 1000);
 
+            summaryDiv.innerHTML = '';
             resultsDiv.innerHTML = 'Loading...';
             let allItems = [];
             let page = 1;
             const pageSize = 35;
+            let totalVolume = 0;
 
             while (true) {
                 const response = await fetch('https://api.dotswap.app/brc20swap/coinpair_swap_history', {
@@ -126,32 +135,39 @@
 
                 page++;
             }
+            
+            allItems.forEach(item => {
+                if (item.tick1 === "BTC") {
+                    totalVolume += parseFloat(item.tick1_amount);
+                }
+                if (item.tick2 === "BTC") {
+                    totalVolume += parseFloat(item.tick2_amount);
+                }
+            });
 
+            summaryDiv.innerHTML = `Total Records: ${allItems.length}, Total BTC Volume: ${totalVolume.toFixed(8)}`;
             resultsDiv.innerHTML = '';
+
             allItems.forEach(item => {
                 const resultElement = document.createElement('p');
 
                 let returned_tick1 = parseFloat(item.tick1_amount);
                 let returned_tick2 = parseFloat(item.tick2_amount);
 
-                if(item.tick1 === "BTC"){
-                    returned_tick1 = Math.trunc(returned_tick1) * 100000000;
-                }
-                if(item.tick2 === "BTC"){
-                    returned_tick2 = Math.trunc(returned_tick2) * 100000000;
-                }
+                const addressAbbr = item.address.substring(0, 4) + "..." + item.address.substring(item.address.length - 4);
 
                 if(item.tick1 === "BTC" && item.tick2 !== "BTC"){
-                    resultElement.innerHTML = `<span class="buy">BUY</span>, -${returned_tick1}, +${returned_tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">Link</a>`;
+                    resultElement.innerHTML = `<span class="buy">BUY</span>, -${returned_tick1} ${item.tick1}, +${returned_tick2} ${item.tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">${addressAbbr}</a>`;
                 } else if (item.tick1 !== "BTC" && item.tick2 === "BTC") {
-                    resultElement.innerHTML = `<span class="sell">SELL</span>, -${returned_tick1}, +${returned_tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">Link</a>`;
+                    resultElement.innerHTML = `<span class="sell">SELL</span>, -${returned_tick1} ${item.tick1}, +${returned_tick2} ${item.tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">${addressAbbr}</a>`;
                 } else {
-                    resultElement.innerHTML = `-${returned_tick1}, +${returned_tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">Link</a>`;
+                    resultElement.innerHTML = `-${returned_tick1} ${item.tick1}, +${returned_tick2} ${item.tick2}, Address: <a href="https://mempool.space/address/${item.address}" target="_blank">${addressAbbr}</a>`;
                 }
                 
                 item.txs.forEach(tx => {
                     const txElement = document.createElement('span');
-                    txElement.innerHTML = `, TXID: <a href="https://mempool.space/tx/${tx.tx_id}" target="_blank">Link</a>`;
+                    const txIdAbbr = tx.tx_id.substring(0, 4) + "..." + tx.tx_id.substring(tx.tx_id.length - 4);
+                    txElement.innerHTML = `, TXID: <a href="https://mempool.space/tx/${tx.tx_id}" target="_blank">${txIdAbbr}</a>`;
                     resultElement.appendChild(txElement);
                 });
 
