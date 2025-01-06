@@ -150,20 +150,30 @@
         });
 
         function formatSwapRecord(item, tick1, tick2) {
-            // Corrected logic:
-            const isBuy = tick1.toUpperCase() === "BTC"; // If tick1 is BTC, it's a buy
+            const isBuy = tick1.toUpperCase() === "BTC";
             const action = isBuy ? "Buy" : "Sell";
-            const minusTick = isBuy ? tick1 : tick1; 
-            const plusTick = isBuy ? tick2 : tick2;
-            const minusAmount = isBuy ? item.tick1_amount : item.tick1_amount;
-            const plusAmount = isBuy ? item.tick2_amount : item.tick2_amount;
+            const minusTick = isBuy ? tick1 : tick2;
+            const plusTick = isBuy ? tick2 : tick1;
 
-            // If selling BTC, format tick1_amount to 8 decimal places
+            // Correctly determine minusAmount and plusAmount based on whether tick1 or tick2 is BTC
+            let minusAmount, plusAmount;
+            if (isBuy) {
+                minusAmount = item.tick1_amount; // For buys, tick1_amount is the minusAmount (BTC)
+                plusAmount = item.tick2_amount;  // For buys, tick2_amount is the plusAmount
+            } else {
+                minusAmount = item.tick1_amount; // For sells, tick1_amount is the minusAmount
+                plusAmount = item.tick2_amount; // For sells, tick2_amount is the plusAmount (BTC)
+            }
+
+            // Format amounts to 8 decimal places if they are BTC
             let formattedMinusAmount = minusAmount;
-            if (!isBuy && minusTick.toUpperCase() === "BTC") {
+            let formattedPlusAmount = plusAmount;
+
+            if (minusTick.toUpperCase() === "BTC") {
                 formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
-            } else if (isBuy && minusTick.toUpperCase() === "BTC") {
-                formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
+            }
+            if (plusTick.toUpperCase() === "BTC") {
+                formattedPlusAmount = (Math.floor(parseFloat(plusAmount)) / 100000000).toFixed(8);
             }
 
             const humanReadableTime = new Date(item.time_sec * 1000).toLocaleString();
@@ -172,7 +182,7 @@
             const txidLink = txid ? `<a class="tx-link" href="https://mempool.space/tx/${txid}" target="_blank">${txid}</a>` : 'N/A';
 
             const formattedRecord = `
-                ${action}, -${formattedMinusAmount} ${minusTick}, +${plusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
+                ${action}, -${formattedMinusAmount} ${minusTick}, +${formattedPlusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
             `;
 
             return formattedRecord;
@@ -182,7 +192,7 @@
         async function getSwapHistory(start_time, end_time, tick1, tick2) {
             const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
             const headers = {
-                'chl': 'bq',
+                'chl': 'shellfinance',
                 'sec-ch-ua-platform': '"macOS"',
                 'Referer': 'https://www.dotswap.app/',
                 'Accept-Language': 'en',
