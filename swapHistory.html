@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DotSwap History</title>
+    <title>DotSwap History 1.017</title>
     <style>
         body {
             font-family: sans-serif;
@@ -33,7 +33,6 @@
         }
         #summary {
             margin-top: 20px;
-            margin-bottom: 10px;
             font-weight: bold;
         }
         .error {
@@ -68,8 +67,8 @@
             <input type="text" id="tick2" name="tick2" value="DOG•GO•TO•THE•MOON">
         </div>
         <button id="fetch-button">Fetch History</button>
-        <div id="summary"></div>
         <div id="output"></div>
+        <div id="summary"></div>
     </div>
 
     <script>
@@ -106,39 +105,37 @@
             }
 
             outputDiv.innerHTML = '<p>Fetching data...</p>';
-            summaryDiv.innerHTML = '';
+            summaryDiv.innerHTML = ''; // Clear summary
 
             try {
                 const swapHistory = await getSwapHistory(startTime, endTime, tick1, tick2);
                 if (swapHistory) {
                     outputDiv.innerHTML = '';
-                    let totalVolumeTick2 = 0;
-
-                    swapHistory.forEach(item => {
-                        if (item.tick2.toUpperCase() === tick2) {
-                            const tick2Amount = parseFloat(item.tick2_amount);
-                            totalVolumeTick2 += tick2Amount;
-                        }
-                    });
-
-                    let totalVolumeTick2InBTC = 0;
-                    if (tick2.toUpperCase() === "BTC") {
-                        totalVolumeTick2InBTC = totalVolumeTick2 / 100000000;
-                    }
-
-                    summaryDiv.innerHTML = `
-                        <p>Total Swap Records: ${swapHistory.length}</p>
-                        <p>Total Volume (${tick2}): ${tick2.toUpperCase() === "BTC" ? totalVolumeTick2InBTC.toFixed(8) : totalVolumeTick2}</p>
-                    `;
 
                     if (swapHistory.length === 0) {
                         outputDiv.innerHTML += `<p>No data found within the time range.</p>`;
                     } else {
-                        swapHistory.sort((a, b) => a.time_sec - b.time_sec);
+                        swapHistory.sort((a, b) => b.time_sec - a.time_sec); // Sort newest first
+
+                        let totalRecords = 0;
+                        let totalVolumeTick1 = 0;
+                        let totalVolumeTick2 = 0;
+
                         swapHistory.forEach(item => {
                             const formattedRecord = formatSwapRecord(item, tick1, tick2);
                             outputDiv.innerHTML += `<div class="swap-record">${formattedRecord}</div>`;
+
+                            totalRecords++;
+                            totalVolumeTick1 += parseFloat(item.tick1_amount);
+                            totalVolumeTick2 += parseFloat(item.tick2_amount);
                         });
+
+                        // Display summary at the end
+                        summaryDiv.innerHTML = `
+                            <p>Total Swap Records: ${totalRecords}</p>
+                            <p>Total Volume ${tick1}: ${tick1 === "BTC" ? (totalVolumeTick1 / 100000000).toFixed(8) : totalVolumeTick1}</p>
+                            <p>Total Volume ${tick2}: ${tick2 === "BTC" ? (totalVolumeTick2 / 100000000).toFixed(8) : totalVolumeTick2}</p>
+                        `;
                     }
 
                 } else {
@@ -150,25 +147,17 @@
         });
 
         function formatSwapRecord(item, tick1, tick2) {
-            const isBuy = tick1.toUpperCase() === "BTC";
-            const action = isBuy ? "Buy" : "Sell";
-            const minusTick = isBuy ? tick1 : tick2;
-            const plusTick = isBuy ? tick2 : tick1;
+            // Simpler logic:
+            const minusTick = tick1;
+            const plusTick = tick2;
+            const minusAmount = item.tick1_amount;
+            const plusAmount = item.tick2_amount;
+            const status = item.status;
 
-            // Correctly determine minusAmount and plusAmount based on whether tick1 or tick2 is BTC
-            let minusAmount, plusAmount;
-            if (isBuy) {
-                minusAmount = item.tick1_amount; // For buys, tick1_amount is the minusAmount (BTC)
-                plusAmount = item.tick2_amount;  // For buys, tick2_amount is the plusAmount
-            } else {
-                minusAmount = item.tick1_amount; // For sells, tick1_amount is the minusAmount
-                plusAmount = item.tick2_amount; // For sells, tick2_amount is the plusAmount (BTC)
-            }
-
-            // Format amounts to 8 decimal places if they are BTC
             let formattedMinusAmount = minusAmount;
             let formattedPlusAmount = plusAmount;
 
+            // Format BTC amounts
             if (minusTick.toUpperCase() === "BTC") {
                 formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
             }
@@ -182,7 +171,256 @@
             const txidLink = txid ? `<a class="tx-link" href="https://mempool.space/tx/${txid}" target="_blank">${txid}</a>` : 'N/A';
 
             const formattedRecord = `
-                ${action}, -${formattedMinusAmount} ${minusTick}, +${formattedPlusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
+                -${formattedMinusAmount} ${minusTick}, +${formattedPlusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}, ${status}
+            `;
+
+            return formattedRecord;
+        }
+
+        // getSwapHistory function remains the same ...
+        async function getSwapHistory(start_time, end_time, tick1, tick2) {
+            const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
+            const headers = {
+                'chl': 'bq',
+                'sec-ch-ua-platform': '"macOS"',
+                'Referer': 'https://www.dotswap.app/',
+                'Accept-Language': 'en',
+                'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                'Wallet-Ver': '1.5.2',
+                'sec-ch-ua-mobile': '?0',
+                'Wallet-Name': 'unisat',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            };
+
+            const page_size = 35;
+            let page = 1;
+            const all_items = [];
+
+            while (true) {
+                const payload = {
+                    "page": page,
+                    "page_size": page_size,
+                    "sort": "",
+                    "desc": true,
+                    "tick1": tick1,
+                    "coin_type_1": tick1 === "BTC" ? "btc" : "runes",
+                    "tick2": tick2,
+                    "coin_type_2": tick2 === "BTC" ? "btc" : "runes",
+                    "type": "swap",
+                    "crypto_type": "btc" 
+                };
+
+                const response = await fetch(base_url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.code !== 0) {
+                    throw new Error(`API returned code ${data.code}, message: ${data.msg}`);
+                }
+
+                const items = data.data.items;
+                if (items.length === 0) {
+                    break;
+                }
+
+                const filtered_items = items.filter(item => start_time <= item.time_sec && item.time_sec <= end_time);
+                all_items.push(...filtered_items);
+
+                if (items[items.length - 1].time_sec < start_time) {
+                    break;
+                }
+
+                page++;
+            }
+
+            return all_items;
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html>
+<head>
+    <title>DotSwap History</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        #container {
+            width: 800px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="datetime-local"], input[type="text"] {
+            width: 200px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #summary {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+        .swap-record {
+            margin-bottom: 10px;
+        }
+        .tx-link {
+            color: blue;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>DotSwap History</h1>
+        <div>
+            <label for="start-time">Start Time:</label>
+            <input type="datetime-local" id="start-time" name="start-time">
+        </div>
+        <div>
+            <label for="end-time">End Time:</label>
+            <input type="datetime-local" id="end-time" name="end-time">
+        </div>
+        <div>
+            <label for="tick1">Tick 1:</label>
+            <input type="text" id="tick1" name="tick1" value="BTC">
+        </div>
+        <div>
+            <label for="tick2">Tick 2:</label>
+            <input type="text" id="tick2" name="tick2" value="DOG•GO•TO•THE•MOON">
+        </div>
+        <button id="fetch-button">Fetch History</button>
+        <div id="output"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        const fetchButton = document.getElementById('fetch-button');
+        const startTimeInput = document.getElementById('start-time');
+        const endTimeInput = document.getElementById('end-time');
+        const tick1Input = document.getElementById('tick1');
+        const tick2Input = document.getElementById('tick2');
+        const outputDiv = document.getElementById('output');
+        const summaryDiv = document.getElementById('summary');
+
+        fetchButton.addEventListener('click', async () => {
+            const startDateTime = startTimeInput.value;
+            const endDateTime = endTimeInput.value;
+            const tick1 = tick1Input.value.trim().toUpperCase();
+            const tick2 = tick2Input.value.trim().toUpperCase();
+
+            if (!startDateTime || !endDateTime) {
+                outputDiv.innerHTML = '<p class="error">Please select both start and end times.</p>';
+                return;
+            }
+
+            if (!tick1 || !tick2) {
+                outputDiv.innerHTML = '<p class="error">Please enter both Tick 1 and Tick 2.</p>';
+                return;
+            }
+
+            const startTime = Math.floor(new Date(startDateTime).getTime() / 1000);
+            const endTime = Math.floor(new Date(endDateTime).getTime() / 1000);
+
+            if (startTime >= endTime) {
+                outputDiv.innerHTML = '<p class="error">Start time must be before end time.</p>';
+                return;
+            }
+
+            outputDiv.innerHTML = '<p>Fetching data...</p>';
+            summaryDiv.innerHTML = ''; // Clear summary
+
+            try {
+                const swapHistory = await getSwapHistory(startTime, endTime, tick1, tick2);
+                if (swapHistory) {
+                    outputDiv.innerHTML = '';
+
+                    if (swapHistory.length === 0) {
+                        outputDiv.innerHTML += `<p>No data found within the time range.</p>`;
+                    } else {
+                        swapHistory.sort((a, b) => b.time_sec - a.time_sec); // Sort newest first
+
+                        let totalRecords = 0;
+                        let totalVolumeTick1 = 0;
+                        let totalVolumeTick2 = 0;
+
+                        swapHistory.forEach(item => {
+                            const formattedRecord = formatSwapRecord(item, tick1, tick2);
+                            outputDiv.innerHTML += `<div class="swap-record">${formattedRecord}</div>`;
+
+                            totalRecords++;
+                            totalVolumeTick1 += parseFloat(item.tick1_amount);
+                            totalVolumeTick2 += parseFloat(item.tick2_amount);
+                        });
+
+                        // Display summary at the end
+                        summaryDiv.innerHTML = `
+                            <p>Total Swap Records: ${totalRecords}</p>
+                            <p>Total Volume ${tick1}: ${tick1 === "BTC" ? (totalVolumeTick1 / 100000000).toFixed(8) : totalVolumeTick1}</p>
+                            <p>Total Volume ${tick2}: ${tick2 === "BTC" ? (totalVolumeTick2 / 100000000).toFixed(8) : totalVolumeTick2}</p>
+                        `;
+                    }
+
+                } else {
+                    outputDiv.innerHTML = '<p class="error">An error occurred while fetching data.</p>';
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+
+        function formatSwapRecord(item, tick1, tick2) {
+            // Simpler logic:
+            const minusTick = tick1;
+            const plusTick = tick2;
+            const minusAmount = item.tick1_amount;
+            const plusAmount = item.tick2_amount;
+            const status = item.status;
+
+            let formattedMinusAmount = minusAmount;
+            let formattedPlusAmount = plusAmount;
+
+            // Format BTC amounts
+            if (minusTick.toUpperCase() === "BTC") {
+                formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
+            }
+            if (plusTick.toUpperCase() === "BTC") {
+                formattedPlusAmount = (Math.floor(parseFloat(plusAmount)) / 100000000).toFixed(8);
+            }
+
+            const humanReadableTime = new Date(item.time_sec * 1000).toLocaleString();
+            const addressLink = `<a class="tx-link" href="https://mempool.space/address/${item.address}" target="_blank">${item.address}</a>`;
+            const txid = item.txs && item.txs[0] && item.txs[0].tx_id;
+            const txidLink = txid ? `<a class="tx-link" href="https://mempool.space/tx/${txid}" target="_blank">${txid}</a>` : 'N/A';
+
+            const formattedRecord = `
+                -${formattedMinusAmount} ${minusTick}, +${formattedPlusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}, ${status}
             `;
 
             return formattedRecord;
