@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DotSwap History</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        #container {
+            width: 800px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="datetime-local"] {
+            width: 200px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>DotSwap History</h1>
+        <div>
+            <label for="start-time">Start Time:</label>
+            <input type="datetime-local" id="start-time" name="start-time">
+        </div>
+        <div>
+            <label for="end-time">End Time:</label>
+            <input type="datetime-local" id="end-time" name="end-time">
+        </div>
+        <button id="fetch-button">Fetch History</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const fetchButton = document.getElementById('fetch-button');
+        const startTimeInput = document.getElementById('start-time');
+        const endTimeInput = document.getElementById('end-time');
+        const outputDiv = document.getElementById('output');
+
+        fetchButton.addEventListener('click', async () => {
+            const startDateTime = startTimeInput.value;
+            const endDateTime = endTimeInput.value;
+
+            if (!startDateTime || !endDateTime) {
+                outputDiv.innerHTML = '<p class="error">Please select both start and end times.</p>';
+                return;
+            }
+
+            const startTime = Math.floor(new Date(startDateTime).getTime() / 1000);
+            const endTime = Math.floor(new Date(endDateTime).getTime() / 1000);
+
+            if (startTime >= endTime) {
+                outputDiv.innerHTML = '<p class="error">Start time must be before end time.</p>';
+                return;
+            }
+
+            outputDiv.innerHTML = '<p>Fetching data...</p>';
+            try {
+                const swapHistory = await getSwapHistory(startTime, endTime);
+                if (swapHistory) {
+                    outputDiv.innerHTML = ''; // Clear loading message
+                    if(swapHistory.length === 0){
+                        outputDiv.innerHTML += `<p>No data found within the time range.</p>`;
+                    } else {
+                        swapHistory.sort((a, b) => a.time_sec - b.time_sec); // Sort by timestamp
+                        swapHistory.forEach(item => {
+                            outputDiv.innerHTML += JSON.stringify(item, null, 2) + '\n\n';
+                        });
+                    }
+                    
+                } else {
+                    outputDiv.innerHTML = '<p class="error">An error occurred while fetching data.</p>';
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+
+        async function getSwapHistory(start_time, end_time) {
+            const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
+            const headers = {
+                'chl': 'shellfinance',
+                'sec-ch-ua-platform': '"macOS"',
+                'Referer': 'https://www.dotswap.app/',
+                'Accept-Language': 'en',
+                'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                'Wallet-Ver': '1.5.2',
+                'sec-ch-ua-mobile': '?0',
+                'Wallet-Name': 'unisat',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            };
+
+            const page_size = 35;
+            let page = 1;
+            const all_items = [];
+
+            while (true) {
+                const payload = {
+                    "page": page,
+                    "page_size": page_size,
+                    "sort": "",
+                    "desc": true,
+                    "tick1": "BTC",
+                    "coin_type_1": "btc",
+                    "tick2": "DOG•GO•TO•THE•MOON",
+                    "coin_type_2": "runes",
+                    "type": "swap",
+                    "crypto_type": "btc"
+                };
+
+                const response = await fetch(base_url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.code !== 0) {
+                    throw new Error(`API returned code ${data.code}, message: ${data.msg}`);
+                }
+
+                const items = data.data.items;
+                if (items.length === 0) {
+                    break;
+                }
+
+                const filtered_items = items.filter(item => start_time <= item.time_sec && item.time_sec <= end_time);
+                all_items.push(...filtered_items);
+
+                if (items[items.length - 1].time_sec < start_time) {
+                    break;
+                }
+
+                page++;
+            }
+
+            return all_items;
+        }
+    </script>
+</body>
+</html>
