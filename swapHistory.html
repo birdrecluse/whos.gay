@@ -14,7 +14,7 @@
             display: block;
             margin-bottom: 5px;
         }
-        input[type="datetime-local"] {
+        input[type="datetime-local"], input[type="text"] {
             width: 200px;
             padding: 5px;
             margin-bottom: 10px;
@@ -30,7 +30,11 @@
             margin-top: 20px;
             border: 1px solid #ccc;
             padding: 10px;
-            white-space: pre-wrap;
+        }
+        #summary {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
         }
         .error {
             color: red;
@@ -48,7 +52,16 @@
             <label for="end-time">End Time:</label>
             <input type="datetime-local" id="end-time" name="end-time">
         </div>
+        <div>
+            <label for="tick1">Tick 1:</label>
+            <input type="text" id="tick1" name="tick1" value="BTC">
+        </div>
+        <div>
+            <label for="tick2">Tick 2:</label>
+            <input type="text" id="tick2" name="tick2" value="DOG•GO•TO•THE•MOON">
+        </div>
         <button id="fetch-button">Fetch History</button>
+        <div id="summary"></div>
         <div id="output"></div>
     </div>
 
@@ -56,14 +69,24 @@
         const fetchButton = document.getElementById('fetch-button');
         const startTimeInput = document.getElementById('start-time');
         const endTimeInput = document.getElementById('end-time');
+        const tick1Input = document.getElementById('tick1');
+        const tick2Input = document.getElementById('tick2');
         const outputDiv = document.getElementById('output');
+        const summaryDiv = document.getElementById('summary');
 
         fetchButton.addEventListener('click', async () => {
             const startDateTime = startTimeInput.value;
             const endDateTime = endTimeInput.value;
+            const tick1 = tick1Input.value.trim().toUpperCase();
+            const tick2 = tick2Input.value.trim().toUpperCase();
 
             if (!startDateTime || !endDateTime) {
                 outputDiv.innerHTML = '<p class="error">Please select both start and end times.</p>';
+                return;
+            }
+
+            if (!tick1 || !tick2) {
+                outputDiv.innerHTML = '<p class="error">Please enter both Tick 1 and Tick 2.</p>';
                 return;
             }
 
@@ -76,19 +99,40 @@
             }
 
             outputDiv.innerHTML = '<p>Fetching data...</p>';
+            summaryDiv.innerHTML = '';
+
             try {
-                const swapHistory = await getSwapHistory(startTime, endTime);
+                const swapHistory = await getSwapHistory(startTime, endTime, tick1, tick2);
                 if (swapHistory) {
-                    outputDiv.innerHTML = ''; // Clear loading message
-                    if(swapHistory.length === 0){
+                    outputDiv.innerHTML = '';
+                    let totalVolumeTick2 = 0; // Initialize to 0
+
+                    swapHistory.forEach(item => {
+                        if (item.tick2.toUpperCase() === tick2) {
+                            const tick2Amount = parseFloat(item.tick2_amount);
+                            totalVolumeTick2 += tick2Amount;
+                        }
+                    });
+
+                    let totalVolumeTick2InBTC = 0;
+                    if (tick2.toUpperCase() === "BTC") {
+                        totalVolumeTick2InBTC = totalVolumeTick2 / 100000000;
+                    }
+
+                    summaryDiv.innerHTML = `
+                        <p>Total Swap Records: ${swapHistory.length}</p>
+                        <p>Total Volume (${tick2}): ${tick2.toUpperCase() === "BTC" ? totalVolumeTick2InBTC.toFixed(8) : totalVolumeTick2}</p>
+                    `;
+
+                    if (swapHistory.length === 0) {
                         outputDiv.innerHTML += `<p>No data found within the time range.</p>`;
                     } else {
-                        swapHistory.sort((a, b) => a.time_sec - b.time_sec); // Sort by timestamp
+                        swapHistory.sort((a, b) => a.time_sec - b.time_sec);
                         swapHistory.forEach(item => {
                             outputDiv.innerHTML += JSON.stringify(item, null, 2) + '\n\n';
                         });
                     }
-                    
+
                 } else {
                     outputDiv.innerHTML = '<p class="error">An error occurred while fetching data.</p>';
                 }
@@ -97,7 +141,7 @@
             }
         });
 
-        async function getSwapHistory(start_time, end_time) {
+        async function getSwapHistory(start_time, end_time, tick1, tick2) {
             const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
             const headers = {
                 'chl': 'shellfinance',
@@ -123,12 +167,12 @@
                     "page_size": page_size,
                     "sort": "",
                     "desc": true,
-                    "tick1": "BTC",
-                    "coin_type_1": "btc",
-                    "tick2": "DOG•GO•TO•THE•MOON",
-                    "coin_type_2": "runes",
+                    "tick1": tick1,
+                    "coin_type_1": tick1 === "BTC" ? "btc" : "runes",
+                    "tick2": tick2,
+                    "coin_type_2": tick2 === "BTC" ? "btc" : "runes",
                     "type": "swap",
-                    "crypto_type": "btc"
+                    "crypto_type": "btc" 
                 };
 
                 const response = await fetch(base_url, {
