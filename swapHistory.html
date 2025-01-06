@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DotSwap History 1.104</title>
+    <title>DotSwap History 1.113</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
@@ -59,7 +59,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>DotSwap History 1.104</h1>
+        <h1>DotSwap History 1.113</h1>
         <div class="input-group">
             <label for="start-date">Start Date:</label>
             <input type="datetime-local" id="start-date">
@@ -195,18 +195,18 @@
               let txidsCell = document.createElement('td');
               let timeCell = document.createElement('td');
 
-              if (item.tick1 === "BTC" && item.tick2 !== "BTC") {
-                actionCell.innerHTML = `<span class="buy">BUY</span>`;
-                amount1Cell.innerHTML = `${(returned_tick1 / 100000000).toFixed(8)}`;
-                amount2Cell.innerHTML = `${returned_tick2}`;
-              } else if (item.tick1 !== "BTC" && item.tick2 === "BTC") {
-                actionCell.innerHTML = `<span class="sell">SELL</span>`;
-                amount1Cell.innerHTML = `${returned_tick1}`;
-                amount2Cell.innerHTML = `${(returned_tick2 / 100000000).toFixed(8)}`;
-              } else {
-                amount1Cell.innerHTML = `${returned_tick1}`;
-                amount2Cell.innerHTML = `${returned_tick2}`;
-              }
+                if (item.tick1 === "BTC" && item.tick2 !== "BTC") {
+                  actionCell.innerHTML = `<span class="buy">BUY</span>`;
+                  amount1Cell.innerHTML = `-${(returned_tick1 / 100000000).toFixed(8)}`;
+                  amount2Cell.innerHTML = `${returned_tick2}`;
+                } else if (item.tick1 !== "BTC" && item.tick2 === "BTC") {
+                  actionCell.innerHTML = `<span class="sell">SELL</span>`;
+                  amount2Cell.innerHTML = `-${(returned_tick2 / 100000000).toFixed(8)}`;
+                  amount1Cell.innerHTML = `${returned_tick1}`;
+                } else {
+                  amount1Cell.innerHTML = `-${returned_tick1}`;
+                  amount2Cell.innerHTML = `${returned_tick2}`;
+                }
 
               addressCell.innerHTML = `<a href="https://mempool.space/address/${item.address}" target="_blank">${addressAbbr}</a>`;
 
