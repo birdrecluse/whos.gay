@@ -153,17 +153,26 @@
             // Corrected logic:
             const isBuy = tick1.toUpperCase() === "BTC"; // If tick1 is BTC, it's a buy
             const action = isBuy ? "Buy" : "Sell";
-            const minusTick = isBuy ? tick1 : tick2; // What you give
-            const plusTick = isBuy ? tick2 : tick1;  // What you receive
-            const minusAmount = isBuy ? item.tick1_amount : item.tick2_amount; // Amount you give
-            const plusAmount = isBuy ? item.tick2_amount : item.tick1_amount; // Amount you receive
+            const minusTick = isBuy ? tick1 : tick1; 
+            const plusTick = isBuy ? tick2 : tick2;
+            const minusAmount = isBuy ? item.tick1_amount : item.tick1_amount;
+            const plusAmount = isBuy ? item.tick2_amount : item.tick2_amount;
+
+            // If selling BTC, format tick1_amount to 8 decimal places
+            let formattedMinusAmount = minusAmount;
+            if (!isBuy && minusTick.toUpperCase() === "BTC") {
+                formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
+            } else if (isBuy && minusTick.toUpperCase() === "BTC") {
+                formattedMinusAmount = (Math.floor(parseFloat(minusAmount)) / 100000000).toFixed(8);
+            }
+
             const humanReadableTime = new Date(item.time_sec * 1000).toLocaleString();
             const addressLink = `<a class="tx-link" href="https://mempool.space/address/${item.address}" target="_blank">${item.address}</a>`;
             const txid = item.txs && item.txs[0] && item.txs[0].tx_id;
             const txidLink = txid ? `<a class="tx-link" href="https://mempool.space/tx/${txid}" target="_blank">${txid}</a>` : 'N/A';
 
             const formattedRecord = `
-                ${action}, -${minusAmount} ${minusTick}, +${plusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
+                ${action}, -${formattedMinusAmount} ${minusTick}, +${plusAmount} ${plusTick}, ${humanReadableTime}, ${addressLink}, ${txidLink}
             `;
 
             return formattedRecord;
@@ -173,7 +182,7 @@
         async function getSwapHistory(start_time, end_time, tick1, tick2) {
             const base_url = 'https://api.dotswap.app/brc20swap/coinpair_swap_history';
             const headers = {
-                'chl': 'shellfinance',
+                'chl': 'bq',
                 'sec-ch-ua-platform': '"macOS"',
                 'Referer': 'https://www.dotswap.app/',
                 'Accept-Language': 'en',
