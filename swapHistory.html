@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DotSwap History 1.417</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>DotSwap History</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
@@ -61,43 +59,27 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="center-align">DotSwap History 1.417</h1> <div class="row">
-            <div class="input-field col s3">
-                <input type="text" id="start-date" class="datepicker">
-                <label for="start-date">Start Date</label>
-            </div>
-            <div class="input-field col s3">
-                <input type="text" id="end-date" class="datepicker">
-                <label for="end-date">End Date</label>
-            </div>
-            <div class="input-field col s2">
-                <input type="text" id="tick1" value="BTC">
-                <label for="tick1">Tick1</label>
-            </div>
-            <div class="input-field col s2">
-                <input type="text" id="tick2" value="DOG•GO•TO•THE•MOON">
-                <label for="tick2">Tick2</label>
-            </div>
-            <div class="col s3">
-                <button class="btn waves-effect waves-light" id="fetch-button">
-                    <i class="material-icons left">search</i>Fetch History
-                </button>
-            </div>
+        <h1>DotSwap History</h1>
+        <div class="input-group">
+            <label for="start-date">Start Date:</label>
+            <input type="datetime-local" id="start-date">
         </div>
-
+        <div class="input-group">
+            <label for="end-date">End Date:</label>
+            <input type="datetime-local" id="end-date">
+        </div>
+        <div class="input-group">
+            <label for="tick1">Tick1:</label>
+            <input type="text" id="tick1" value="BTC">
+        </div>
+        <div class="input-group">
+            <label for="tick2">Tick2:</label>
+            <input type="text" id="tick2" value="DOG•GO•TO•THE•MOON">
+        </div>
+        <button id="fetch-button">Fetch History</button>
         <div id="summary" class="summary"></div>
-        <div id="results"></div> </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script>
-        // Initialize Materialize components (e.g., datepicker)
-        document.addEventListener('DOMContentLoaded', function() {
-            var datepickers = document.querySelectorAll('.datepicker');
-            M.Datepicker.init(datepickers);
-        });
-
-        // ... rest of your JavaScript code ...
-    </script>
+        <div id="results"></div>
+    </div>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
